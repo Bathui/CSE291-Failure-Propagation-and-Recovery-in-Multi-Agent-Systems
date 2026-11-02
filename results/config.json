@@ -1,0 +1,25 @@
+{
+  "tasks": 90,
+  "seed_rule": "task_for(i)",
+  "faults": [
+    "none",
+    "wrong_price",
+    "malicious_instruction",
+    "timeout",
+    "stale_stock",
+    "audit_corruption",
+    "plan_tamper"
+  ],
+  "methods": [
+    "none",
+    "restart",
+    "verify"
+  ],
+  "note": "Deterministic CPU simulator; no actual LLM calls or external actions.",
+  "weight_units": {
+    "research": 3,
+    "audit": 2,
+    "plan": 4,
+    "execute": 2
+  }
+}
