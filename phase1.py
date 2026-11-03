@@ -14,19 +14,8 @@ from collections import defaultdict
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
-
-CATALOG = {
-    "alpha": {"price": 40, "stock": 8, "approved": True},
-    "beta": {"price": 75, "stock": 5, "approved": True},
-    "gamma": {"price": 110, "stock": 3, "approved": False},
-}
-
-DEPENDENCIES = {
-    "research": ["request"],
-    "audit": ["request"],
-    "plan": ["research", "request"],
-    "execute": ["plan", "audit"],
-}
+from agent_system.domain.catalog import CATALOG
+from agent_system.workflows.definitions import DEPENDENCIES, STAGES
 
 WEIGHTS = {
     "research": 3,
@@ -34,8 +23,6 @@ WEIGHTS = {
     "plan": 4,
     "execute": 2,
 }
-
-STAGES = ("research", "audit", "plan", "execute")
 
 FAULTS = (
     "none",
