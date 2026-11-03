@@ -3,6 +3,11 @@
 
 CSE 291 - Phase 1
 
+## Manual
+
+See the [DataHub and local experiment manual](docs/manual.md) for GPU setup,
+llama.cpp startup, SSH port forwarding, and local experiment commands.
+
 ## Real LLM agents (DataHub)
 
 The `agent_system` package connects all four roles to the shared llama.cpp model server.
@@ -10,17 +15,20 @@ Each role has its own context and permitted tools. Researcher and Auditor query
 independent local tools; Planner uses a multiplication tool and submits a plan; Executor invokes a simulated
 action tool. No model-generated code or real external action is executed.
 
-Run **inside the GPU DataHub environment**, where the model server is running:
+DataHub runs Qwen3-8B inference through llama.cpp. The workflow, tools,
+evaluation, and result storage run on your local machine. After starting the
+model and setting up port forwarding as described in the manual, run this
+command from the local repository root:
 
-```bash
-cd ~/private/cse291/src/experiment
-~/private/cse291/.venv/bin/python -m agent_system --tasks 6 --output ~/private/cse291/results_llm
+```powershell
+python -m agent_system --base-url http://127.0.0.1:18000/v1 --tasks 1 --output results_llm
 ```
 
-Defaults: base URL `http://127.0.0.1:8000/v1`, model alias `cse291-qwen3-8b`.
-Override these with `--base-url`, `--model`, or `LLAMA_BASE_URL` / `LLAMA_MODEL`.
-The localhost address refers to the machine running Python: opening that address
-in a browser on your laptop does not access the DataHub model server.
+Use `--tasks 6` to run all built-in tasks. The SSH tunnel exposes the DataHub
+model on local port `18000`. The server listens on port `8000` inside the
+DataHub container and uses the model alias `cse291-qwen3-8b`.
+You can also set the endpoint with `LLAMA_BASE_URL` and override the alias with
+`--model` or `LLAMA_MODEL`.
 
 Results are written to a new timestamped folder beneath `results_llm/`:
 `config.json`, `traces.jsonl`, `runs.csv`, and `summary.json`. Traces include exact
@@ -43,7 +51,6 @@ Local protocol checks (no model server required):
 python -m unittest discover -s tests -v
 ```
 
-See [DataHub operation](docs/datahub.md) for model lifecycle and code synchronization.
 The initial live integration results and current model limitations are recorded
 in [integration validation](docs/integration-validation.md).
 
