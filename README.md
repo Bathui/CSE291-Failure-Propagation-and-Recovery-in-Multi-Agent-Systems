@@ -3,6 +3,93 @@
 
 CSE 291 - Phase 1
 
+## Manual
+
+See the [DataHub and local experiment manual](docs/manual.md) for GPU setup,
+llama.cpp startup, SSH port forwarding, and local experiment commands.
+
+## Real LLM agents (DataHub)
+
+The `agent_system` package connects all four roles to the shared llama.cpp model server.
+Each role has its own context and permitted tools. Researcher and Auditor query
+independent local tools. Planner receives a total price and stock check before
+submitting a plan. Executor invokes a simulated action tool. Both recovery
+policies check the Executor's action against the plan and audit.
+
+DataHub runs Qwen3-8B inference through llama.cpp. The workflow, tools,
+evaluation, and result storage run on your local machine. After starting the
+model and setting up port forwarding as described in the manual, run this
+command from the local repository root:
+
+```powershell
+python -m agent_system --base-url http://127.0.0.1:18000/v1 --tasks 1 --output results_llm
+```
+
+Use `--tasks 6` to run all built-in tasks. The SSH tunnel exposes the DataHub
+model on local port `18000`. The server listens on port `8000` inside the
+DataHub container and uses the model alias `cse291-qwen3-8b`.
+You can also set the endpoint with `LLAMA_BASE_URL` and override the alias with
+`--model` or `LLAMA_MODEL`.
+
+Results are written to a new timestamped folder beneath `results_llm/`:
+`config.json`, `traces.jsonl`, `runs.csv`, and `summary.json`. Traces include exact
+role inputs, model responses, tool calls, artifact dependencies, timing and usage.
+Protocol and connection failures are recorded; there is no simulator fallback.
+
+The six built-in cases cover approval, budget, stock and authorization boundaries.
+For a larger task set, pass `--task-file tasks.json` (a JSON array of objects with
+`id`, `sku`, `quantity`, `budget`, and `authorized_action`). `--repeats` controls
+repetition; seeds, prompts and schemas are saved with each run. Fixed seeds do not
+guarantee deterministic GPU inference. Token counts are actual server usage,
+not the synthetic cost units of the simulator.
+
+Run the paired Phase 1 matrix after the model tunnel is available:
+
+```powershell
+python -m agent_system --base-url http://127.0.0.1:18000/v1 --suite --tasks 6 --repeats 3 --output results_llm
+```
+
+The suite crosses clean, wrong price, stale stock, simulated delivery timeout,
+and malicious instruction with three recovery policies. See the
+[manual](docs/manual.md#6-run-the-phase-1-matrix) for the policy definitions and
+how to read `comparison.json`. The remaining simulator sections describe
+the separate `phase1.py` entry point.
+
+Local protocol checks (no model server required):
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The initial live integration results are recorded in
+[historical integration validation](docs/integration-validation.md).
+The [Phase 1 experiment results](docs/phase1-results.md) report all 270 live-model
+runs. The clean reference passed 18/18. Both recovery policies passed all 72
+injected runs after retry. The report separates propagation, recovery cost,
+and the Executor regression test.
+
+## Code organization
+
+```text
+agent_system/
+  __main__.py, cli.py       # Package entry and command-line arguments
+  clients/                 # Model interface and llama.cpp HTTP adapter
+  agents/                  # Four role definitions and the bounded tool loop
+  tools/                   # Inventory, authorization, planning and simulation tools
+  domain/                  # Shared catalog, task fixtures and business rules
+  scenarios/               # Composition of the inventory experiment
+  workflows/               # Dependency graph and artifact orchestration
+  evaluation/              # Offline scoring and usage metrics
+  experiments/             # Runtime settings, experiment execution and file output
+tests/                     # Workflow, transport and application checks
+```
+
+The workflow accepts its agent runner, role definitions, dependencies, validator
+and evaluator as dependencies. Agent execution does not import the scoring
+oracle or command-line interface. Both the live scenario and legacy simulator
+read the catalog and graph from their shared owning modules; the live package
+does not import `phase1.py`.
+
 ## Overview
 
 This project investigates how incorrect or malicious

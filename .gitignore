@@ -1,0 +1,7 @@
+.idea
+__pycache__/
+*.pyc
+.venv/
+/results/
+/results_llm/*
+!/results_llm/phase1-20261104T061309Z-d36950cf/
