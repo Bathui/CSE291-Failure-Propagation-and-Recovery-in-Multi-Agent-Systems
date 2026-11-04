@@ -23,7 +23,7 @@ class AgentRunner:
         messages = [{"role": "system", "content": definition.prompt},
                     {"role": "user", "content": json.dumps(visible, ensure_ascii=False)}]
         tools = self.tools.definitions_for(definition.tool_names)
-        context = ToolContext(task, stage_id)
+        context = ToolContext(task, stage_id, inputs=visible)
         for turn in range(self.max_turns):
             start = time.perf_counter()
             call_event = {"event": "model_call", "stage": role, "stage_id": stage_id,

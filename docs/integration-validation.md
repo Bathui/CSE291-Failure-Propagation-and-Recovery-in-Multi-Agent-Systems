@@ -1,4 +1,7 @@
-# Live four-role integration validation
+# Historical four-role integration validation
+
+This page records the initial smoke runs. See [Phase 1 experiment results](phase1-results.md)
+for the current fault and recovery matrix.
 
 The implementation has since been moved into the `agent_system` package.
 Historical source manifests refer to the earlier single-file layout. The role

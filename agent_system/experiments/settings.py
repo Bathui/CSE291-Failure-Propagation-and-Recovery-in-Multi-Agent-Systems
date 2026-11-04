@@ -13,6 +13,8 @@ class ExperimentSettings:
     repeats: int = 1
     seed: int = 42
     output: Path = Path("results_llm")
+    fault: str = "none"
+    recovery: str = "none"
 
     def __post_init__(self):
         if min(self.repeats, self.max_tokens, self.max_turns) < 1 or self.timeout <= 0:

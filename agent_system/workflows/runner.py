@@ -18,7 +18,7 @@ class Workflow:
                 raise ValueError("Invalid workflow order or dependencies for " + stage)
             available.add(stage)
 
-    def run(self, task, seed=42):
+    def run(self, task, seed=42, transform_output=None):
         self.task_validator(task)
         run_id = uuid.uuid4().hex
         events, artifacts = [], {}
@@ -33,6 +33,8 @@ class Workflow:
             stage_start = time.perf_counter()
             try:
                 output = self.agent_runner.run(self.agents[role], task, parents, seed, events, stage_id)
+                if transform_output is not None:
+                    output = transform_output(role, output, events, stage_id)
                 artifacts[role] = {"artifact_id": stage_id, "value": output}
                 events.append({"event": "stage_output", "stage": role, "stage_id": stage_id,
                                "dependencies": dependencies, "artifact": copy.deepcopy(output),

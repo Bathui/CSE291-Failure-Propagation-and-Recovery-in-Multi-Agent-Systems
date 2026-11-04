@@ -6,7 +6,6 @@ environment lives under `~/private/cse291`, outside the repository:
 - `src/llama.cpp`: CUDA-enabled llama.cpp build.
 - `models/Qwen3-8B-Q4_K_M.gguf`: model weights.
 - `.venv`: Python environment; the integration uses only the standard library.
-- `src/experiment`: this repository's remote working copy.
 - `start_model.sh`, `stop_model.py`, `smoke_test.py`: model lifecycle and diagnostics.
 - `logs`: server output, setup manifest, model SHA-256 and protocol smoke results.
 
@@ -25,7 +24,7 @@ After a DataHub restart, open a terminal and start the model:
 bash ~/private/cse291/start_model.sh
 ```
 
-Keep that foreground process running, then use a second terminal for experiments.
+Keep that foreground process running while the local workflow uses the model.
 Stop a foreground server with Ctrl+C. To stop the background server created by
 the initial setup, use:
 
@@ -45,21 +44,11 @@ This is a working compatibility configuration, not an optimized native build.
 Record `logs/setup-manifest.json` alongside experiment results when reporting
 model, quantization and runtime versions.
 
-## Synchronize and run the four roles
+## Run the four roles locally
 
-When changes have been committed and pushed from your development machine:
-
-```bash
-cd ~/private/cse291/src/experiment
-git pull --ff-only
-~/private/cse291/.venv/bin/python -m agent_system --tasks 6 --output ~/private/cse291/results_llm
-```
-
-An explicitly uploaded working copy can also be used before publishing a commit.
-Do not confuse that temporary copy with the repository's pushed version.
-The initial integration was uploaded this way. Before the first Git pull that
-introduces the same new files, reconcile or back up the uploaded files; Git can
-otherwise refuse to overwrite untracked files. Check `git status` first.
+Follow the [manual](manual.md) to forward the model port through SSH and run
+the local checkout. DataHub serves inference and the local process runs the
+workflow, tools, fault injection, verification, and result storage.
 
 The four roles share model weights but not their conversations. Data flow is:
 
@@ -79,8 +68,8 @@ Each run has isolated simulated effects. Evaluation uses the trusted catalog
 outside model contexts. Failed or unauthorized simulated actions remain visible
 in traces and cannot be replaced by a synthetic successful result.
 
-This integration does not yet implement real-model fault injection or recovery.
-`phase1.py` remains the separate deterministic simulator and its old outputs are
-not evidence of real-model behavior.
+The local `--suite` entry point pairs each injected run with a clean reference
+and compares the no-recovery, full-restart, and always-verify policies.
+`phase1.py` is a separate deterministic simulator.
 
-See [live integration validation](integration-validation.md) for measured results.
+See [Phase 1 experiment results](phase1-results.md) for the paired live-model results.

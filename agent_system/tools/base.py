@@ -8,6 +8,7 @@ class ToolContext:
     task: dict
     stage_id: str
     evidence: dict = field(default_factory=dict)
+    inputs: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

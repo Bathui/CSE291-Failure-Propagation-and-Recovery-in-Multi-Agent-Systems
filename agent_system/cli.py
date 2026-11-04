@@ -5,7 +5,9 @@ from pathlib import Path
 
 from agent_system.domain.tasks import task_for, validate_task
 from agent_system.experiments.runner import run_experiment
+from agent_system.experiments.recovery import METHODS
 from agent_system.experiments.settings import ExperimentSettings
+from agent_system.faults.inventory import FAULTS
 from agent_system.protocol import strict_json
 
 
@@ -24,6 +26,10 @@ def build_parser():
     parser.add_argument("--max-tokens", type=int, default=defaults.max_tokens)
     parser.add_argument("--max-turns", type=int, default=defaults.max_turns)
     parser.add_argument("--output", type=Path, default=defaults.output)
+    parser.add_argument("--fault", choices=("none", *FAULTS), default=defaults.fault,
+                        help="Inject one fault into the Researcher output")
+    parser.add_argument("--recovery", choices=METHODS, default=defaults.recovery)
+    parser.add_argument("--suite", action="store_true", help="Run paired Phase 1 conditions")
     return parser
 
 
@@ -39,7 +45,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         settings = ExperimentSettings(**{name: getattr(args, name) for name in (
-            "base_url", "model", "timeout", "max_tokens", "max_turns", "repeats", "seed", "output")})
+            "base_url", "model", "timeout", "max_tokens", "max_turns", "repeats", "seed", "output",
+            "fault", "recovery")})
         if args.task_file:
             tasks = strict_json(args.task_file.read_text(encoding="utf-8"))
         else:
@@ -54,6 +61,12 @@ def main(argv=None):
             raise ValueError("Task IDs must be unique")
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
+    if args.suite:
+        if args.fault != "none" or args.recovery != "none":
+            parser.error("--suite selects its own faults and recovery methods")
+        from agent_system.experiments.suite import run_suite
+        print("Suite results: " + str(run_suite(settings, tasks, report_run).resolve()))
+        return 0
     result = run_experiment(settings, tasks, on_run=report_run)
     print("Results: " + str(result.output.resolve()))
     return 1 if result.has_errors else 0

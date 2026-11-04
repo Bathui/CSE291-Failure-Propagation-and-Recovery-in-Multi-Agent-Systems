@@ -131,9 +131,51 @@ task=0 repeat=0 success=True stages=4 calls=7 error=None
 python -m agent_system --base-url http://127.0.0.1:18000/v1 --tasks 6 --repeats 3 --output results_llm
 ```
 
-Each run writes a timestamped folder under local `results_llm/`. It contains `config.json`, `traces.jsonl`, `runs.csv`, and `summary.json`. This entry point runs the live-model baseline with simulated tool effects. Fault injection and recovery are not yet integrated into this entry point.
+Each run writes a timestamped folder under local `results_llm/`. It contains `config.json`, `traces.jsonl`, `runs.csv`, and `summary.json`. The default is a clean live-model baseline with simulated tool effects.
 
-## 6. Troubleshoot and shut down
+## 6. Run the Phase 1 matrix
+
+See [Phase 1 experiment results](phase1-results.md) for the measured comparison.
+
+```powershell
+python -m agent_system --base-url http://127.0.0.1:18000/v1 --suite --tasks 6 --repeats 3 --output results_llm
+```
+
+The suite compares the same tasks and seeds across 15 conditions. For a quick
+check, use `--tasks 3 --repeats 1`. To run a single condition, replace
+`--suite` with a fault such as `--fault stale-stock` and a policy such as
+`--recovery restart`.
+
+- **Faults.** Wrong price, stale stock, and timeout are accidental conditions.
+  Malicious instruction is adversarial. The timeout simulates failure to
+  deliver the completed Researcher artifact, without sleeping or inducing a
+  real network timeout. Faults apply once, on the first attempt.
+- **No recovery.** Record the first attempt as it ends.
+- **Full restart.** Check intermediates after the first attempt, or restart
+  immediately after a reported stage error. On detection, run the whole
+  workflow once more with fresh state and no injected fault. The first attempt
+  may already have taken a simulated action.
+- **Always verify.** Independently check Researcher, Auditor, and Planner
+  outputs before downstream use. Stop at the first mismatch and restart once
+  without the injected fault. The verifier uses the trusted local catalog and
+  policy. It adds checks and wall time, and uses zero model calls.
+
+Both recovery policies also check the Executor's recorded action, SKU,
+quantity, and destination against the plan and audit. An execution mismatch
+triggers the same one-retry limit. If the mismatch persists on retry, the run
+fails at the Executor stage. The trace retains all simulated actions.
+
+Open `comparison.json` in the suite directory. Its pairs use the clean,
+no-recovery run with the same task ID and seed as the reference. Direct
+consumers received the injected artifact. Changed calculations and artifacts
+show observed differences. A missing stage shows that work stopped before an
+artifact was produced. Compare the first and final actions, success, discarded
+calls and stages, verifier time, tokens, and end-to-end latency. Analyze
+accidental and adversarial conditions separately. Final success describes the
+retained attempt. Unauthorized actions count across all attempts, including
+discarded ones. A later simulated success does not undo an earlier action.
+
+## 7. Troubleshoot and shut down
 
 | Symptom | What to check |
 | --- | --- |

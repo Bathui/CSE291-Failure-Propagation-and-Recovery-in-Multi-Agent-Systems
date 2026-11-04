@@ -12,8 +12,9 @@ llama.cpp startup, SSH port forwarding, and local experiment commands.
 
 The `agent_system` package connects all four roles to the shared llama.cpp model server.
 Each role has its own context and permitted tools. Researcher and Auditor query
-independent local tools; Planner uses a multiplication tool and submits a plan; Executor invokes a simulated
-action tool. No model-generated code or real external action is executed.
+independent local tools. Planner receives a total price and stock check before
+submitting a plan. Executor invokes a simulated action tool. Both recovery
+policies check the Executor's action against the plan and audit.
 
 DataHub runs Qwen3-8B inference through llama.cpp. The workflow, tools,
 evaluation, and result storage run on your local machine. After starting the
@@ -42,8 +43,17 @@ repetition; seeds, prompts and schemas are saved with each run. Fixed seeds do n
 guarantee deterministic GPU inference. Token counts are actual server usage,
 not the synthetic cost units of the simulator.
 
-This entry point currently validates role integration without injected faults or
-recovery methods. The remaining sections describe the original simulator only.
+Run the paired Phase 1 matrix after the model tunnel is available:
+
+```powershell
+python -m agent_system --base-url http://127.0.0.1:18000/v1 --suite --tasks 6 --repeats 3 --output results_llm
+```
+
+The suite crosses clean, wrong price, stale stock, simulated delivery timeout,
+and malicious instruction with three recovery policies. See the
+[manual](docs/manual.md#6-run-the-phase-1-matrix) for the policy definitions and
+how to read `comparison.json`. The remaining simulator sections describe
+the separate `phase1.py` entry point.
 
 Local protocol checks (no model server required):
 
@@ -51,8 +61,12 @@ Local protocol checks (no model server required):
 python -m unittest discover -s tests -v
 ```
 
-The initial live integration results and current model limitations are recorded
-in [integration validation](docs/integration-validation.md).
+The initial live integration results are recorded in
+[historical integration validation](docs/integration-validation.md).
+The [Phase 1 experiment results](docs/phase1-results.md) report all 270 live-model
+runs. The clean reference passed 18/18. Both recovery policies passed all 72
+injected runs after retry. The report separates propagation, recovery cost,
+and the Executor regression test.
 
 ## Code organization
 
