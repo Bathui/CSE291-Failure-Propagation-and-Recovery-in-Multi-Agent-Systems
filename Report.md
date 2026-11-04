@@ -1,5 +1,8 @@
 # Phase 1 Report: Fault Injection and Propagation in Multi-Agent Systems
 
+**Repository:** [https://github.com/Bathui/CSE291-Failure-Propagation-and-Recovery-in-Multi-Agent-Systems](https://github.com/Bathui/CSE291-Failure-Propagation-and-Recovery-in-Multi-Agent-Systems)  
+**Group members:** Chengjun Wu, Hui Cui
+
 ## Abstract
 
 We built a four-role inventory workflow and measured how faults in intermediate results change downstream calculations and simulated actions. We evaluated six tasks at three seeds across five fault conditions and three recovery policies, for 270 runs. The clean reference passed 18/18. Without recovery, success ranged from 0/18 for delivery timeouts to 15/18 for stale stock. Both recovery policies passed all 72 of their injected runs. For artifact faults, verifying before downstream use saved five model calls per run relative to checking after the first attempt and restarting.
@@ -38,6 +41,10 @@ Each condition uses the same six tasks and seeds 42, 43, and 44. We compare thre
 | No recovery | Record the first attempt without additional checks or retries. |
 | Full restart | On a stage error or a mismatch found by checks after the attempt, rerun the entire workflow once with fresh state and no injection. |
 | Always verify | Check intermediate artifacts against independent local reference data before downstream use. On a stage error or mismatch, stop and rerun once without injection. |
+
+### Experimental baselines
+
+The clean, no-recovery run is the reference for each task and seed. It establishes the workflow's normal success rate, actions, and cost. The injected, no-recovery run measures how the same workflow behaves when a fault is allowed to propagate. Full restart provides the recovery baseline, and always verify measures the effect and cost of checking artifacts before downstream use. Clean runs under both recovery policies also measure verification overhead and check for unnecessary restarts.
 
 Both recovery policies also check the Executor's recorded action against the plan and audit. Checks use local rules and add no model calls. The trace retains any simulated actions from the first attempt.
 
@@ -115,3 +122,19 @@ run. The live matrix injects faults at Researcher, so it does not exercise
 an Executor-specific fault. Recovery results apply to one-shot faults with
 independent reference data. The first-attempt behavior can vary even when
 task and seed are held fixed.
+
+## Current limitations
+
+- **Fault placement.** The live matrix injects faults at the Researcher boundary. It measures propagation through Planner to Executor, while direct faults in Auditor, Planner, and Executor remain untested in the live matrix. Executor mismatch recovery was tested with a scripted model response.
+- **Workload and fault duration.** The study uses six synthetic tasks, three seeds, and one model configuration. Faults occur once, so the restart results do not establish recovery under persistent or repeated faults. The simulated timeout measures failed artifact delivery without an actual wait.
+- **Verification and state.** The verifier has access to a trusted local catalog and policy, which may be unavailable or stale in a changing environment. Tool effects are simulated, and the workflow does not restore shared state or undo actions from the first attempt.
+
+## Phase 2 outlook: Selective recovery
+
+We plan to implement dependency-aware invalidation. Each artifact will record the IDs and versions of the inputs it used. Given the identity of a faulty result, the recovery mechanism will invalidate its dependent artifacts, restore affected simulated state where possible, and rerun only the necessary stages. For example, a faulty Researcher result invalidates the corresponding plan and execution, while the independent Auditor result can be reused.
+
+The initial evaluation will supply the same faulty artifact identity, or the same failed stage for a missing artifact, to all recovery methods. This isolates recovery quality from detection accuracy. If we later add automatic detection, we will report false positives and missed faults separately.
+
+We will test faults at different stages and include cases where agents share mutable state. Restoring an earlier model context leaves external changes in place. For simulated writes, we plan to use versioned snapshots or a write log and check whether another actor changed the state before restoring it. We will record actions that cannot be undone and distinguish successful recomputation from successful state recovery.
+
+We will compare selective recovery with full restart and always verify under identical fault schedules and resource budgets. The comparison will track final correctness, reused and rerun stages, model calls, tokens, end-to-end latency, and residual side effects.
